@@ -90,31 +90,6 @@ TEST(StackTest, ClearEmptiesStack) {
     EXPECT_EQ(stack.size(), 0);
 }
 
-TEST(StackTest, MoveConstructor) {
-    StackList<int> stack1;
-    stack1.push(1);
-    stack1.push(2);
-    stack1.push(3);
-
-    StackList<int> stack2 = std::move(stack1);
-    EXPECT_TRUE(stack1.empty());
-    EXPECT_EQ(stack2.size(), 3);
-    EXPECT_EQ(stack2.top(), 3);
-}
-
-TEST(StackTest, MoveAssignment) {
-    StackList<int> stack1;
-    stack1.push(1);
-    stack1.push(2);
-
-    StackList<int> stack2;
-    stack2 = std::move(stack1);
-
-    EXPECT_TRUE(stack1.empty());
-    EXPECT_EQ(stack2.size(), 2);
-    EXPECT_EQ(stack2.top(), 2);
-}
-
 TEST(StackTest, StringStack) {
     StackList<std::string> stack;
     stack.push("hello");

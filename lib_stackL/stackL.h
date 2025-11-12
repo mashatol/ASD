@@ -1,83 +1,70 @@
 #pragma once
-#include <stdexcept>
+#include "list.h"
 
 template<typename T>
 class StackList {
 private:
-    struct Node {
-        T data;
-        Node* next;
-        Node(const T& value, Node* next_node = nullptr) : data(value), next(next_node) {}
-    };
-
-    Node* top_node;
-    size_t stack_size;
+    List<T> list;
 
 public:
-    StackList() : top_node(nullptr), stack_size(0) {}
+    StackList() = default;
 
-    ~StackList() {
-        clear();
+    // Конструктор копирования
+    StackList(const StackList& other) : list(other.list) {}
+
+    // Оператор присваивания
+    StackList& operator=(const StackList& other) {
+        if (this != &other) {
+            list = other.list;
+        }
+        return *this;
     }
-    StackList(const StackList&) = delete;
-    StackList& operator=(const StackList&) = delete;
 
-    StackList(StackList&& other) noexcept : top_node(other.top_node), stack_size(other.stack_size) {
-        other.top_node = nullptr;
-        other.stack_size = 0;
-    }
+    // Конструктор перемещения
+    StackList(StackList&& other) noexcept : list(std::move(other.list)) {}
 
+    // Оператор перемещения
     StackList& operator=(StackList&& other) noexcept {
         if (this != &other) {
-            clear();
-            top_node = other.top_node;
-            stack_size = other.stack_size;
-            other.top_node = nullptr;
-            other.stack_size = 0;
+            list = std::move(other.list);
         }
         return *this;
     }
 
     void push(const T& value) {
-        top_node = new Node(value, top_node);
-        stack_size++;
+        list.push_front(value);
     }
 
     void pop() {
         if (empty()) {
             throw std::out_of_range("pop from empty stack");
         }
-        Node* temp = top_node;
-        top_node = top_node->next;
-        delete temp;
-        stack_size--;
+        list.pop_front();
     }
 
     T& top() {
         if (empty()) {
             throw std::out_of_range("top from empty stack");
         }
-        return top_node->data;
+        return list.front();
     }
 
     const T& top() const {
         if (empty()) {
             throw std::out_of_range("top from empty stack");
         }
-        return top_node->data;
+        return list.front();
     }
 
     bool empty() const {
-        return stack_size == 0;
+        return list.empty();
     }
 
     size_t size() const {
-        return stack_size;
+        return list.get_size();
     }
 
     void clear() {
-        while (!empty()) {
-            pop();
-        }
+        list.clear();
     }
 };
