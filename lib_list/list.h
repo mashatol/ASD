@@ -151,6 +151,7 @@ public:
         Node* current;
 
     public:
+        Node* get_node() const { return current; };
         using iterator_category = std::forward_iterator_tag;
         using value_type = T;
         using difference_type = std::ptrdiff_t;
@@ -202,6 +203,7 @@ public:
         const Node* current;
 
     public:
+        const Node* get_node() const { return current; }
         using iterator_category = std::forward_iterator_tag;
         using value_type = T;
         using difference_type = std::ptrdiff_t;
