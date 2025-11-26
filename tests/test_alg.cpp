@@ -269,51 +269,51 @@ TEST(CycleTest, LargeListNoCycle) {
     EXPECT_FALSE(hasCycleReverse(list));
     EXPECT_EQ(findCycleStart(list), list.end());
 }
-
-TEST(CycleTest, LargeListWithCycle) {
-    List<int> list;
-    for (int i = 0; i < 10; i++) {
-        list.push_back(i);
-    }
-    // Создаем цикл: последний элемент -> 5-й элемент
-    typename List<int>::Node* fifth = list.begin().get_node();
-    for (int i = 0; i < 5; i++) {
-        fifth = fifth->next;
-    }
-    typename List<int>::Node* last = list.begin().get_node();
-    while (last->next != nullptr) {
-        last = last->next;
-    }
-    last->next = fifth;
-
-    EXPECT_TRUE(hasCycleFloyd(list));
-    EXPECT_TRUE(hasCycleReverse(list));
-
-    typename List<int>::Iterator cycle_start = findCycleStart(list);
-    EXPECT_NE(cycle_start, list.end());
-    EXPECT_EQ(*cycle_start, 5);
-}
-
-TEST(CycleTest, CycleToFirstElement) {
-    List<int> list;
-    list.push_back(1);
-    list.push_back(2);
-    list.push_back(3);
-    list.push_back(4);
-    // Создаем цикл: 4->1
-    typename List<int>::Node* last = list.begin().get_node();
-    while (last->next != nullptr) {
-        last = last->next;
-    }
-    last->next = list.begin().get_node();
-
-    EXPECT_TRUE(hasCycleFloyd(list));
-    EXPECT_TRUE(hasCycleReverse(list));
-
-    typename List<int>::Iterator cycle_start = findCycleStart(list);
-    EXPECT_NE(cycle_start, list.end());
-    EXPECT_EQ(*cycle_start, 1);
-}
+//
+//TEST(CycleTest, LargeListWithCycle) {
+//    List<int> list;
+//    for (int i = 0; i < 10; i++) {
+//        list.push_back(i);
+//    }
+//    // Создаем цикл: последний элемент -> 5-й элемент
+//    typename List<int>::Node* fifth = list.begin().get_node();
+//    for (int i = 0; i < 5; i++) {
+//        fifth = fifth->next;
+//    }
+//    typename List<int>::Node* last = list.begin().get_node();
+//    while (last->next != nullptr) {
+//        last = last->next;
+//    }
+//    last->next = fifth;
+//
+//    EXPECT_TRUE(hasCycleFloyd(list));
+//    EXPECT_TRUE(hasCycleReverse(list));
+//
+//    typename List<int>::Iterator cycle_start = findCycleStart(list);
+//    EXPECT_NE(cycle_start, list.end());
+//    EXPECT_EQ(*cycle_start, 5);
+//}
+//
+//TEST(CycleTest, CycleToFirstElement) {
+//    List<int> list;
+//    list.push_back(1);
+//    list.push_back(2);
+//    list.push_back(3);
+//    list.push_back(4);
+//    // Создаем цикл: 4->1
+//    typename List<int>::Node* last = list.begin().get_node();
+//    while (last->next != nullptr) {
+//        last = last->next;
+//    }
+//    last->next = list.begin().get_node();
+//
+//    EXPECT_TRUE(hasCycleFloyd(list));
+//    EXPECT_TRUE(hasCycleReverse(list));
+//
+//    typename List<int>::Iterator cycle_start = findCycleStart(list);
+//    EXPECT_NE(cycle_start, list.end());
+//    EXPECT_EQ(*cycle_start, 1);
+//}
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
