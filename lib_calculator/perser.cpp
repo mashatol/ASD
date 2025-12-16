@@ -1,231 +1,196 @@
 #include "Parser.h"
-#include <sstream>
-#include <cctype>
 
-bool Parser::is_operator(char c) {
-    return c == '+' || c == '-' || c == '*' || c == '/' || c == '^';
+Parser::Parser() : pos(0) {}
+
+void Parser::skipSpaces() {
+    while (pos < expr.size() && isspace(expr[pos])) pos++;
 }
 
-bool Parser::is_function(const std::string& str) {
-    return str == "sin" || str == "cos" || str == "tg" ||
-        str == "ln" || str == "exp" || str == "abs";
+double Parser::parseNumber() {
+    size_t start = pos;
+    bool dot = false;
+
+    while (pos < expr.size() && (isdigit(expr[pos]) || expr[pos] == '.')) {
+        if (expr[pos] == '.') {
+            if (dot) throw std::runtime_error("Invalid number");
+            dot = true;
+        }
+        pos++;
+    }
+
+    std::string num = expr.substr(start, pos - start);
+    std::stringstream ss(num);
+    double val;
+    ss >> val;
+    return val;
 }
 
-bool Parser::is_variable_char(char c) {
-    return std::isalnum(c) || c == '_';
+std::string Parser::parseName() {
+    size_t start = pos;
+    while (pos < expr.size() && (isalnum(expr[pos]) || expr[pos] == '_')) pos++;
+    return expr.substr(start, pos - start);
 }
 
-bool Parser::is_bracket(char c) {
-    return c == '(' || c == ')' || c == '{' || c == '}' || c == '[' || c == ']';
+double Parser::parseFunction(const std::string& name) {
+    skipSpaces();
+    if (expr[pos] != '(') throw std::runtime_error("Expected '(' after function");
+    pos++;
+
+    double arg = parseAddSub();
+
+    skipSpaces();
+    if (expr[pos] != ')') throw std::runtime_error("Expected ')'");
+    pos++;
+
+    if (name == "sin") return sin(arg);
+    if (name == "cos") return cos(arg);
+    if (name == "tan") return tan(arg);
+    if (name == "sqrt") {
+        if (arg < 0) throw std::runtime_error("sqrt of negative");
+        return sqrt(arg);
+    }
+    if (name == "abs") return fabs(arg);
+    if (name == "log") return log10(arg);
+    if (name == "ln") return log(arg);
+    if (name == "exp") return exp(arg);
+
+    throw std::runtime_error("Unknown function: " + name);
 }
 
-TypeLexem Parser::get_bracket_type(char c) {
-    if (c == '(' || c == '{' || c == '[') return TypeLexem::OpenBracket;
-    if (c == ')' || c == '}' || c == ']') return TypeLexem::CloseBracket;
-    throw std::runtime_error("Invalid bracket character");
-}
+double Parser::parseAtom() {
+    skipSpaces();
 
-bool Parser::is_matching_brackets(char open, char close) {
-    return (open == '(' && close == ')') ||
-        (open == '{' && close == '}') ||
-        (open == '[' && close == ']');
-}
+    if (expr[pos] == '(') {
+        pos++;
+        double val = parseAddSub();
+        skipSpaces();
+        if (expr[pos] != ')') throw std::runtime_error("Expected ')'");
+        pos++;
+        return val;
+    }
 
-int Parser::get_operator_priority(const std::string& op) {
-    if (op == "^") return 3;
-    if (op == "*" || op == "/") return 2;
-    if (op == "+" || op == "-") return 1;
-    return -1;
-}
+    if (expr[pos] == '-') {
+        pos++;
+        return -parseAtom();
+    }
 
-List<Lexem> Parser::parse(const std::string& expression) {
-    List<Lexem> lexems;
-    std::string buffer;
+    if (isdigit(expr[pos]) || expr[pos] == '.') {
+        return parseNumber();
+    }
 
-    for (size_t i = 0; i < expression.length(); ++i) {
-        char c = expression[i];
+    if (isalpha(expr[pos])) {
+        std::string name = parseName();
+        skipSpaces();
 
-        if (std::isspace(c)) {
-            continue;
+        if (expr[pos] == '(') {
+            return parseFunction(name);
         }
 
-        if (std::isdigit(c) || c == '.') {
-            buffer += c;
-            while (i + 1 < expression.length() &&
-                (std::isdigit(expression[i + 1]) || expression[i + 1] == '.')) {
-                buffer += expression[++i];
-            }
-            double value = std::stod(buffer);
-            lexems.push_back(Lexem(buffer, TypeLexem::Constant, value));
-            buffer.clear();
-        }
-        else if (std::isalpha(c) || c == '_') {
-            buffer += c;
-            while (i + 1 < expression.length() && Parser::is_variable_char(expression[i + 1])) {
-                buffer += expression[++i];
-            }
+        auto it = vars.find(name);
+        if (it == vars.end()) throw std::runtime_error("Unknown variable: " + name);
+        return it->second;
+    }
 
-            if (Parser::is_function(buffer)) {
-                std::function<double(double)> func;
-                if (buffer == "sin") func = MathFunctions::my_sin;
-                else if (buffer == "cos") func = MathFunctions::my_cos;
-                else if (buffer == "tg") func = MathFunctions::my_tg;
-                else if (buffer == "ln") func = MathFunctions::my_ln;
-                else if (buffer == "exp") func = MathFunctions::my_exp;
-                else if (buffer == "abs") func = MathFunctions::my_abs;
+    throw std::runtime_error("Unexpected character");
+}
 
-                lexems.push_back(Lexem(buffer, TypeLexem::Function, 0.0, 4, func));
-            }
-            else {
-                lexems.push_back(Lexem(buffer, TypeLexem::Variable));
-            }
-            buffer.clear();
-        }
-        else if (Parser::is_operator(c)) {
-            std::string op(1, c);
-            int priority = Parser::get_operator_priority(op);
-            lexems.push_back(Lexem(op, TypeLexem::Operator, 0.0, priority));
-        }
-        else if (Parser::is_bracket(c)) {
-            TypeLexem type = Parser::get_bracket_type(c);
-            lexems.push_back(Lexem(std::string(1, c), type));
+double Parser::parsePow() {
+    double left = parseAtom();
+
+    while (true) {
+        skipSpaces();
+        if (expr[pos] == '^') {
+            pos++;
+            double right = parseAtom();
+            left = pow(left, right);
         }
         else {
-            throw std::runtime_error("Invalid character in expression: " + std::string(1, c));
+            break;
         }
     }
 
-    return lexems;
+    return left;
 }
 
-List<Lexem> Parser::to_postfix(const List<Lexem>& infix) {
-    List<Lexem> output;
-    Stack<Lexem> op_stack;
+double Parser::parseMulDiv() {
+    double left = parsePow();
 
-    typename List<Lexem>::ConstIterator it = infix.begin();
-    while (it != infix.end()) {
-        const Lexem& lexem = *it;
+    while (true) {
+        skipSpaces();
+        char op = expr[pos];
+        if (op == '*' || op == '/' || op == '%') {
+            pos++;
+            double right = parsePow();
 
-        switch (lexem.type) {
-        case TypeLexem::Constant:
-        case TypeLexem::Variable:
-            output.push_back(lexem);
-            break;
-
-        case TypeLexem::Function:
-            op_stack.push(lexem);
-            break;
-
-        case TypeLexem::Operator: {
-            while (!op_stack.is_empty() &&
-                op_stack.top().type != TypeLexem::OpenBracket &&
-                op_stack.top().priority >= lexem.priority) {
-                output.push_back(op_stack.top());
-                op_stack.pop();
-            }
-            op_stack.push(lexem);
-            break;
-        }
-
-        case TypeLexem::OpenBracket:
-            op_stack.push(lexem);
-            break;
-
-        case TypeLexem::CloseBracket:
-            while (!op_stack.is_empty() && op_stack.top().type != TypeLexem::OpenBracket) {
-                output.push_back(op_stack.top());
-                op_stack.pop();
-            }
-            if (op_stack.is_empty()) {
-                throw std::runtime_error("Mismatched brackets");
-            }
-            op_stack.pop();
-
-            if (!op_stack.is_empty() && op_stack.top().type == TypeLexem::Function) {
-                output.push_back(op_stack.top());
-                op_stack.pop();
-            }
-            break;
-
-        default:
-            break;
-        }
-        ++it;
-    }
-
-    while (!op_stack.is_empty()) {
-        if (op_stack.top().type == TypeLexem::OpenBracket) {
-            throw std::runtime_error("Mismatched brackets");
-        }
-        output.push_back(op_stack.top());
-        op_stack.pop();
-    }
-
-    return output;
-}
-
-double Parser::evaluate(const List<Lexem>& postfix, const std::unordered_map<std::string, double>& variables) {
-    Stack<double> value_stack;
-
-    typename List<Lexem>::ConstIterator it = postfix.begin();
-    while (it != postfix.end()) {
-        const Lexem& lexem = *it;
-
-        switch (lexem.type) {
-        case TypeLexem::Constant:
-            value_stack.push(lexem.value);
-            break;
-
-        case TypeLexem::Variable: {
-            auto var_it = variables.find(lexem.name);
-            if (var_it == variables.end()) {
-                throw std::runtime_error("Undefined variable: " + lexem.name);
-            }
-            value_stack.push(var_it->second);
-            break;
-        }
-
-        case TypeLexem::Function: {
-            if (value_stack.is_empty()) throw std::runtime_error("Not enough operands for function");
-            double arg = value_stack.top();
-            value_stack.pop();
-            double result = lexem.function(arg);
-            value_stack.push(result);
-            break;
-        }
-
-        case TypeLexem::Operator: {
-            if (value_stack.is_empty()) throw std::runtime_error("Not enough operands for operator");
-            double right = value_stack.top();
-            value_stack.pop();
-            if (value_stack.is_empty()) throw std::runtime_error("Not enough operands for operator");
-            double left = value_stack.top();
-            value_stack.pop();
-
-            double result = 0;
-            if (lexem.name == "+") result = left + right;
-            else if (lexem.name == "-") result = left - right;
-            else if (lexem.name == "*") result = left * right;
-            else if (lexem.name == "/") {
+            if (op == '*') left *= right;
+            else if (op == '/') {
                 if (right == 0) throw std::runtime_error("Division by zero");
-                result = left / right;
+                left /= right;
             }
-            else if (lexem.name == "^") result = pow(left, right);
-
-            value_stack.push(result);
+            else {
+                left = fmod(left, right);
+            }
+        }
+        else {
             break;
         }
-        default:
-            break;
-        }
-        ++it;
     }
 
-    if (value_stack.is_empty()) throw std::runtime_error("Empty expression");
-    double result = value_stack.top();
-    value_stack.pop();
+    return left;
+}
 
-    if (!value_stack.is_empty()) throw std::runtime_error("Too many operands");
+double Parser::parseAddSub() {
+    double left = parseMulDiv();
+
+    while (true) {
+        skipSpaces();
+        char op = expr[pos];
+        if (op == '+' || op == '-') {
+            pos++;
+            double right = parseMulDiv();
+
+            if (op == '+') left += right;
+            else left -= right;
+        }
+        else {
+            break;
+        }
+    }
+
+    return left;
+}
+
+double Parser::calculate(const std::string& expression) {
+    expr = expression;
+    pos = 0;
+    vars.clear();
+
+    double result = parseAddSub();
+    skipSpaces();
+    if (pos != expr.size()) throw std::runtime_error("Unexpected characters");
 
     return result;
+}
+
+double Parser::calculate(const std::string& expression, const std::map<std::string, double>& variables) {
+    expr = expression;
+    pos = 0;
+    vars = variables;
+
+    double result = parseAddSub();
+    skipSpaces();
+    if (pos != expr.size()) throw std::runtime_error("Unexpected characters");
+
+    return result;
+}
+
+bool Parser::validate(const std::string& expression) {
+    try {
+        Parser p;
+        p.calculate(expression);
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
 }

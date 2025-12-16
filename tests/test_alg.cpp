@@ -315,7 +315,4 @@ TEST(CycleTest, LargeListNoCycle) {
 //    EXPECT_EQ(*cycle_start, 1);
 //}
 
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+

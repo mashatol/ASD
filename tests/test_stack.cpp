@@ -49,6 +49,20 @@ TEST(StackTest, PopOperations) {
 
     stack.pop();
     EXPECT_TRUE(stack.is_empty());
+
+}
+TEST(StackTest, PushAndPopCombination) {
+    Stack<int> stack(3);
+    stack.push(10);
+    stack.push(20);
+    stack.push(30);
+
+    stack.pop();
+
+    stack.pop();
+    EXPECT_NO_THROW(stack.push(4));
+    EXPECT_EQ(stack.count(), 2);
+    EXPECT_EQ(stack.top(), 4);
 }
 
 TEST(StackTest, ClearOperation) {

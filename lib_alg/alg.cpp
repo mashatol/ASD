@@ -2,12 +2,16 @@
 
 int countIslands(int** grid, int N) {
     if (N <= 0) return 0;
-
+    int countnull = 0;
     DSU dsu(N * N);
 
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            if (grid[i][j] == 0) continue;
+            if (grid[i][j] == 0) {
+                countnull++;
+
+                continue;
+            }
 
             int currentIndex = i * N + j;
 
@@ -22,22 +26,16 @@ int countIslands(int** grid, int N) {
     }
 
 
-    std::vector<bool> isIslandRoot(N * N, false);
     int islandCount = 0;
 
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            if (grid[i][j] == 1) {
-                int root = dsu.find(i * N + j);
-                if (!isIslandRoot[root]) {
-                    isIslandRoot[root] = true;
-                    islandCount++;
-                }
-            }
+    for (int i = 0; i < N*N; ++i) {
+        if (i == dsu.find(i))
+        {
+            islandCount++;
         }
     }
 
-    return islandCount;
+    return (islandCount - countnull);
 }
 
 bool check_brackets(const std::string& str) {

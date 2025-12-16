@@ -1,23 +1,33 @@
-#pragma once
-#include "List.h"
-#include "Lexem.h"
-#include "Stack.h"
-#include <stdexcept>
+#ifndef PARSER_H
+#define PARSER_H
+
 #include <string>
-#include <unordered_map>
+#include <map>
+#include <cmath>
+#include <stdexcept>
+#include <sstream>
+#include <cctype>
 
 class Parser {
-public:
-    static List<Lexem> parse(const std::string& expression);
-    static List<Lexem> to_postfix(const List<Lexem>& infix);
-    static double evaluate(const List<Lexem>& postfix, const std::unordered_map<std::string, double>& variables);
-
 private:
-    static bool is_operator(char c);
-    static bool is_function(const std::string& str);
-    static bool is_variable_char(char c);
-    static bool is_bracket(char c);
-    static TypeLexem get_bracket_type(char c);
-    static bool is_matching_brackets(char open, char close);
-    static int get_operator_priority(const std::string& op);
+    std::string expr;
+    size_t pos;
+    std::map<std::string, double> vars;
+
+    void skipSpaces();
+    double parseNumber();
+    std::string parseName();
+    double parseAtom();
+    double parsePow();
+    double parseMulDiv();
+    double parseAddSub();
+    double parseFunction(const std::string& name);
+
+public:
+    Parser();
+    double calculate(const std::string& expression);
+    double calculate(const std::string& expression, const std::map<std::string, double>& variables);
+    static bool validate(const std::string& expression);
 };
+
+#endif

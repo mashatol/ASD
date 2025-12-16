@@ -114,8 +114,3 @@ TEST(DSUTest, OutOfRange) {
     EXPECT_THROW(dsu.unite(-1, 0), std::out_of_range);
     EXPECT_THROW(dsu.unite(0, 5), std::out_of_range);
 }
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

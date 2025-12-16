@@ -192,8 +192,3 @@ TEST(ListBasicTest, CopyAndAssignment) {
     EXPECT_EQ(original_vec, assigned_vec);
 }
 
-
-int main(int argc, char** argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}

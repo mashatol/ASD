@@ -1,26 +1,23 @@
-#pragma once
-#include "TVector.h"
+#ifndef CALCULATOR_H
+#define CALCULATOR_H
+
 #include "Expression.h"
-#include "Parser.h"
-#include <iostream>
+#include "TVector.h"
 #include <string>
 
 class Calculator {
-private:
-    TVector<Expression> expressions;
-    int next_id;
+    TVector<Expression> exprs;
+    int nextId;
+
+    void showAll() const;
+    void createExpr();
+    void deleteExpr();
+    void setVars();
+    void evalExpr();
 
 public:
-    Calculator() : next_id(1), expressions(TVector<Expression>()) {}
-
+    Calculator() : nextId(1) {}
     void run();
-private:
-    void show_menu();
-    void create_expression();
-    void delete_expression();
-    void set_variables();
-    void evaluate_expression();
-    void show_expressions();
-    int get_choice();
-    void add_expression(const Expression& expr);
 };
+
+#endif

@@ -5,28 +5,29 @@
 
 template<typename T>
 class List {
-private:
+public: 
     struct Node {
-        T value;
-        Node* next;
+    T value;
+    Node* next;
 
-        Node(const T& val, Node* next_node = nullptr)
-            : value(val), next(next_node) {
-        }
-    };
+    Node(const T& val, Node* next_node = nullptr)
+        : value(val), next(next_node) {
+    }
+};
+private:
 
     Node* head;
     Node* tail;
     size_t size;
 
 public:
-    // Конструкторы/деструктор
     List() : head(nullptr), tail(nullptr), size(0) {}
 
     List(const List& other) : head(nullptr), tail(nullptr), size(0) {
         Node* current = other.head;
         while (current != nullptr) {
-            push_back(current->value);
+            Node* new_Node = new Node(current->value); //
+
             current = current->next;
         }
     }
@@ -36,7 +37,7 @@ public:
             clear();
             Node* current = other.head;
             while (current != nullptr) {
-                push_back(current->value);
+                push_back(current->value); //
                 current = current->next;
             }
         }
@@ -141,7 +142,7 @@ public:
 
     void clear() {
         while (!empty()) {
-            pop_front();
+            pop_front(); //
         }
     }
 

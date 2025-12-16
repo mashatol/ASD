@@ -1,11 +1,19 @@
-#pragma once
+#ifndef LEXEM_H
+#define LEXEM_H
+
 #include <string>
-#include <cmath>
 #include <functional>
 
-enum class TypeLexem {
-    Constant, Variable, OpenBracket, CloseBracket,
-    Function, Operator
+enum TypeLexem {
+    Constant,
+    Variable,
+    OpenBracket,
+    CloseBracket,
+    Function,
+    Operator,
+    UnOperator,
+    OpenedAbs,
+    ClosedAbs
 };
 
 struct Lexem {
@@ -15,19 +23,18 @@ struct Lexem {
     int priority;
     std::function<double(double)> function;
 
-    Lexem(const std::string& _name = "", TypeLexem _type = TypeLexem::Variable,
-        double _value = 0.0, int _priority = -1,
-        std::function<double(double)> _function = nullptr)
-        : name(_name), type(_type), value(_value),
-        priority(_priority), function(_function) {
-    }
+    // Конструкторы
+    Lexem();
+    Lexem(std::string _name, TypeLexem _type);
+    Lexem(double val);
+    Lexem(std::string _name, TypeLexem _type, int _priority);
+    Lexem(std::string _name, std::function<double(double)> func);
+
+    // Методы
+    bool isOperator() const;
+    bool isFunction() const;
+    bool isBracket() const;
+    bool isAbs() const;
 };
 
-namespace MathFunctions {
-    double my_sin(double x);
-    double my_cos(double x);
-    double my_tg(double x);
-    double my_ln(double x);
-    double my_exp(double x);
-    double my_abs(double x);
-}
+#endif

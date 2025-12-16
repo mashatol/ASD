@@ -1,230 +1,206 @@
 #include "Calculator.h"
 #include <iostream>
+#include <sstream>
 #include <limits>
+#include <cctype>
+
+using namespace std;
+
+void Calculator::showAll() const {
+    cout << "+---------------------------------------------------+\n";
+    cout << "| ID  | EXPRESSION               | VARIABLES        |\n";
+    cout << "+---------------------------------------------------+\n";
+
+    for (int i = 0; i < exprs.size(); i++) {
+        const Expression& e = exprs[i];
+        cout << "| " << e.getId() << " ";
+
+        string expr = e.getExpression();
+        if (expr.length() > 25) expr = expr.substr(0, 22) + "...";
+        cout.width(27);
+        cout << left << ("| " + expr) << "| ";
+
+        const auto& vars = e.getVariables();
+        if (vars.empty()) cout << "none";
+        else {
+            bool first = true;
+            for (const auto& v : vars) {
+                if (!first) cout << ", ";
+                cout << v.first << "=" << v.second;
+                first = false;
+            }
+        }
+        cout << " |\n";
+    }
+    cout << "+---------------------------------------------------+\n";
+}
+
+void Calculator::createExpr() {
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cout << "Enter expression: ";
+    string expr;
+    getline(cin, expr);
+
+    if (expr.empty()) {
+        cout << "Empty!\n";
+        return;
+    }
+
+    try {
+        Expression e(nextId++, expr);
+        exprs.push(e);
+        cout << "Created with ID " << (nextId - 1) << "\n";
+    }
+    catch (const exception& ex) {
+        cout << "Error: " << ex.what() << "\n";
+    }
+}
+
+void Calculator::deleteExpr() {
+    cout << "Enter ID to delete: ";
+    int id;
+    cin >> id;
+
+    if (!cin) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Bad input\n";
+        return;
+    }
+
+    int idx = -1;
+    for (int i = 0; i < exprs.size(); i++) {
+        if (exprs[i].getId() == id) { idx = i; break; }
+    }
+
+    if (idx == -1) {
+        cout << "Not found\n";
+        return;
+    }
+
+    for (int i = idx; i < exprs.size() - 1; i++) {
+        exprs[i] = exprs[i + 1];
+    }
+    exprs.pop();
+    cout << "Deleted\n";
+}
+
+void Calculator::setVars() {
+    cout << "Enter expression ID: ";
+    int id;
+    cin >> id;
+
+    if (!cin) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Bad input\n";
+        return;
+    }
+
+    int idx = -1;
+    for (int i = 0; i < exprs.size(); i++) {
+        if (exprs[i].getId() == id) { idx = i; break; }
+    }
+
+    if (idx == -1) {
+        cout << "Not found\n";
+        return;
+    }
+
+    Expression& e = exprs[idx];
+    e.clearVariables();
+
+    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    cout << "Enter name=value (empty line to stop):\n";
+
+    while (true) {
+        cout << "> ";
+        string line;
+        getline(cin, line);
+        if (line.empty()) break;
+
+        size_t eq = line.find('=');
+        if (eq == string::npos) {
+            cout << "Format: name=value\n";
+            continue;
+        }
+
+        string name = line.substr(0, eq);
+        string valStr = line.substr(eq + 1);
+
+        bool ok = !name.empty() && (isalpha(name[0]) || name[0] == '_');
+        for (char c : name) {
+            if (!isalnum(c) && c != '_') { ok = false; break; }
+        }
+
+        if (!ok) {
+            cout << "Bad var name\n";
+            continue;
+        }
+
+        try {
+            double val = stod(valStr);
+            e.setVariable(name, val);
+            cout << "Set " << name << " = " << val << "\n";
+        }
+        catch (...) {
+            cout << "Bad number\n";
+        }
+    }
+}
+
+void Calculator::evalExpr() {
+    cout << "Enter expression ID: ";
+    int id;
+    cin >> id;
+
+    if (!cin) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Bad input\n";
+        return;
+    }
+
+    int idx = -1;
+    for (int i = 0; i < exprs.size(); i++) {
+        if (exprs[i].getId() == id) { idx = i; break; }
+    }
+
+    if (idx == -1) {
+        cout << "Not found\n";
+        return;
+    }
+
+    try {
+        double res = exprs[idx].evaluate();
+        cout << "Result: " << res << "\n";
+    }
+    catch (const exception& ex) {
+        cout << "Error: " << ex.what() << "\n";
+    }
+}
 
 void Calculator::run() {
     while (true) {
-        show_menu();
-        int choice = get_choice();
+        cout << "\n1. Create\n2. Delete\n3. Set vars\n4. Evaluate\n5. Show all\n0. Exit\nChoice: ";
+        int choice;
+        cin >> choice;
+
+        if (!cin) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Bad input\n";
+            continue;
+        }
 
         switch (choice) {
-        case 1:
-            create_expression();
-            break;
-        case 2:
-            delete_expression();
-            break;
-        case 3:
-            set_variables();
-            break;
-        case 4:
-            evaluate_expression();
-            break;
-        case 5:
-            show_expressions();
-            break;
-        case 0:
-            std::cout << "Выход из программы." << std::endl;
-            return;
-        default:
-            std::cout << "Неверный выбор!" << std::endl;
-        }
-    }
-}
-
-void Calculator::show_menu() {
-    std::cout << "\n=== КАЛЬКУЛЯТОР АРИФМЕТИЧЕСКИХ ВЫРАЖЕНИЙ ===" << std::endl;
-    std::cout << "1. Создать новое выражение" << std::endl;
-    std::cout << "2. Удалить выражение" << std::endl;
-    std::cout << "3. Задать переменные" << std::endl;
-    std::cout << "4. Вычислить значение выражения" << std::endl;
-    std::cout << "5. Показать все выражения" << std::endl;
-    std::cout << "0. Выход" << std::endl;
-    std::cout << "Ваш выбор: ";
-}
-
-int Calculator::get_choice() {
-    int choice;
-    std::cin >> choice;
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    return choice;
-}
-
-void Calculator::add_expression(const Expression& expr) {
-    // Создаем новый вектор с увеличенным размером
-    TVector<Expression> new_expressions(expressions.size() + 1);
-
-    // Копируем старые выражения
-    for (int i = 0; i < expressions.size(); ++i) {
-        new_expressions[i] = expressions[i];
-    }
-
-    // Добавляем новое выражение
-    new_expressions[expressions.size()] = expr;
-
-    // Заменяем старый вектор новым
-    expressions = new_expressions;
-}
-
-void Calculator::create_expression() {
-    std::cout << "Введите выражение: ";
-    std::string expr;
-    std::getline(std::cin, expr);
-
-    try {
-        Expression new_expr(next_id++, expr);
-
-        // Парсим выражение
-        List<Lexem> infix = Parser::parse(expr);
-        new_expr.set_infix_notation(infix);
-
-        // Преобразуем в обратную польскую запись
-        List<Lexem> postfix = Parser::to_postfix(infix);
-        new_expr.set_postfix_notation(postfix);
-
-        add_expression(new_expr);
-        std::cout << "Выражение создано с ID: " << new_expr.get_id() << std::endl;
-
-    }
-    catch (const std::exception& e) {
-        std::cout << "Ошибка: " << e.what() << std::endl;
-    }
-}
-
-void Calculator::delete_expression() {
-    if (expressions.size() == 0) {
-        std::cout << "Нет выражений для удаления." << std::endl;
-        return;
-    }
-
-    show_expressions();
-    std::cout << "Введите ID выражения для удаления: ";
-    int id;
-    std::cin >> id;
-
-    // Создаем новый вектор без удаляемого выражения
-    TVector<Expression> new_expressions(expressions.size() - 1);
-    int new_index = 0;
-    bool found = false;
-
-    for (int i = 0; i < expressions.size(); ++i) {
-        if (expressions[i].get_id() != id) {
-            new_expressions[new_index++] = expressions[i];
-        }
-        else {
-            found = true;
-        }
-    }
-
-    if (found) {
-        expressions = new_expressions;
-        std::cout << "Выражение удалено." << std::endl;
-    }
-    else {
-        std::cout << "Выражение с ID " << id << " не найдено." << std::endl;
-    }
-}
-
-void Calculator::set_variables() {
-    if (expressions.size() == 0) {
-        std::cout << "Нет выражений." << std::endl;
-        return;
-    }
-
-    show_expressions();
-    std::cout << "Введите ID выражения: ";
-    int id;
-    std::cin >> id;
-
-    Expression* expr = nullptr;
-    for (int i = 0; i < expressions.size(); ++i) {
-        if (expressions[i].get_id() == id) {
-            expr = &expressions[i];
-            break;
-        }
-    }
-
-    if (!expr) {
-        std::cout << "Выражение не найдено." << std::endl;
-        return;
-    }
-
-    expr->clear_variables();
-
-    std::cout << "Введите переменные (формат: имя значение). Для завершения введите 'end':" << std::endl;
-    while (true) {
-        std::string name;
-        double value;
-
-        std::cout << "> ";
-        std::cin >> name;
-
-        if (name == "end") break;
-
-        if (std::cin >> value) {
-            expr->set_variable(name, value);
-            std::cout << "Переменная " << name << " = " << value << " установлена." << std::endl;
-        }
-        else {
-            std::cout << "Ошибка ввода значения!" << std::endl;
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-    }
-}
-
-void Calculator::evaluate_expression() {
-    if (expressions.size() == 0) {
-        std::cout << "Нет выражений." << std::endl;
-        return;
-    }
-
-    show_expressions();
-    std::cout << "Введите ID выражения: ";
-    int id;
-    std::cin >> id;
-
-    Expression* expr = nullptr;
-    for (int i = 0; i < expressions.size(); ++i) {
-        if (expressions[i].get_id() == id) {
-            expr = &expressions[i];
-            break;
-        }
-    }
-
-    if (!expr) {
-        std::cout << "Выражение не найдено." << std::endl;
-        return;
-    }
-
-    try {
-        double result = Parser::evaluate(expr->get_postfix_notation(), expr->get_variables());
-        std::cout << "Результат: " << result << std::endl;
-    }
-    catch (const std::exception& e) {
-        std::cout << "Ошибка вычисления: " << e.what() << std::endl;
-    }
-}
-
-void Calculator::show_expressions() {
-    if (expressions.size() == 0) {
-        std::cout << "Нет выражений." << std::endl;
-        return;
-    }
-
-    std::cout << "\n=== ВСЕ ВЫРАЖЕНИЯ ===" << std::endl;
-    for (int i = 0; i < expressions.size(); ++i) {
-        const Expression& expr = expressions[i];
-        std::cout << "ID: " << expr.get_id() << " | Выражение: " << expr.get_expression() << std::endl;
-
-        // Показываем переменные
-        const auto& vars = expr.get_variables();
-        if (!vars.empty()) {
-            std::cout << "  Переменные: ";
-            for (const auto& var : vars) {
-                std::cout << var.first << "=" << var.second << " ";
-            }
-            std::cout << std::endl;
+        case 0: return;
+        case 1: createExpr(); break;
+        case 2: deleteExpr(); break;
+        case 3: setVars(); break;
+        case 4: evalExpr(); break;
+        case 5: showAll(); break;
+        default: cout << "Bad choice\n";
         }
     }
 }

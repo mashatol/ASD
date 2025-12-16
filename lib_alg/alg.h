@@ -13,7 +13,7 @@ bool check_brackets(const std::string& str);
 
 
 template<typename T>
-bool hasCycleFloyd(const List<T>& list) {
+bool hasCycleFloyd(List<T>& list) {
     if (list.empty() || list.get_size() == 1) {
         return false;
     }

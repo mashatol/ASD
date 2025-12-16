@@ -12,11 +12,11 @@ public:
     ~DSU();
 
     DSU(const DSU&) = delete;
-    DSU& operator=(const DSU&) = delete;
+    DSU& operator=(const DSU&) = delete;//
 
   
     DSU(DSU&& other) noexcept;
-    DSU& operator=(DSU&& other) noexcept;
+    DSU& operator=(DSU&& other) noexcept; ////
 
     int find(int x);
     void unite(int x, int y);
