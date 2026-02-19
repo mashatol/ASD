@@ -1,33 +1,22 @@
-#ifndef PARSER_H
-#define PARSER_H
-
-#include <string>
-#include <map>
-#include <cmath>
-#include <stdexcept>
-#include <sstream>
-#include <cctype>
-
-class Parser {
-private:
-    std::string expr;
-    size_t pos;
-    std::map<std::string, double> vars;
-
-    void skipSpaces();
-    double parseNumber();
-    std::string parseName();
-    double parseAtom();
-    double parsePow();
-    double parseMulDiv();
-    double parseAddSub();
-    double parseFunction(const std::string& name);
-
-public:
-    Parser();
-    double calculate(const std::string& expression);
-    double calculate(const std::string& expression, const std::map<std::string, double>& variables);
-    static bool validate(const std::string& expression);
-};
-
-#endif
+//#ifndef PARSER_H
+//#define PARSER_H
+//
+//#include "list.h"
+//#include "Lexem.h"
+//#include <string>
+//#include <functional>
+//
+//namespace Parser {
+//    List<Lexem> parse(const std::string& expression);
+//    List<Lexem> toRPN(const List<Lexem>& infix);
+//
+//    bool isDigit(char c); // является ли символ цифрой или точкой(для десятичных дробей)
+//    bool isLetter(char c);
+//    bool isVariableChar(char c);
+//    bool isUnaryOperator(char current, const List<Lexem>& previous);
+//    bool isOpeningAbs(const List<Lexem>& previous);
+//
+//    int getPriority(const std::string& op);
+//}
+//
+//#endif // PARSER_H

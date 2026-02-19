@@ -1,196 +1,310 @@
-#include "Parser.h"
-
-Parser::Parser() : pos(0) {}
-
-void Parser::skipSpaces() {
-    while (pos < expr.size() && isspace(expr[pos])) pos++;
-}
-
-double Parser::parseNumber() {
-    size_t start = pos;
-    bool dot = false;
-
-    while (pos < expr.size() && (isdigit(expr[pos]) || expr[pos] == '.')) {
-        if (expr[pos] == '.') {
-            if (dot) throw std::runtime_error("Invalid number");
-            dot = true;
-        }
-        pos++;
-    }
-
-    std::string num = expr.substr(start, pos - start);
-    std::stringstream ss(num);
-    double val;
-    ss >> val;
-    return val;
-}
-
-std::string Parser::parseName() {
-    size_t start = pos;
-    while (pos < expr.size() && (isalnum(expr[pos]) || expr[pos] == '_')) pos++;
-    return expr.substr(start, pos - start);
-}
-
-double Parser::parseFunction(const std::string& name) {
-    skipSpaces();
-    if (expr[pos] != '(') throw std::runtime_error("Expected '(' after function");
-    pos++;
-
-    double arg = parseAddSub();
-
-    skipSpaces();
-    if (expr[pos] != ')') throw std::runtime_error("Expected ')'");
-    pos++;
-
-    if (name == "sin") return sin(arg);
-    if (name == "cos") return cos(arg);
-    if (name == "tan") return tan(arg);
-    if (name == "sqrt") {
-        if (arg < 0) throw std::runtime_error("sqrt of negative");
-        return sqrt(arg);
-    }
-    if (name == "abs") return fabs(arg);
-    if (name == "log") return log10(arg);
-    if (name == "ln") return log(arg);
-    if (name == "exp") return exp(arg);
-
-    throw std::runtime_error("Unknown function: " + name);
-}
-
-double Parser::parseAtom() {
-    skipSpaces();
-
-    if (expr[pos] == '(') {
-        pos++;
-        double val = parseAddSub();
-        skipSpaces();
-        if (expr[pos] != ')') throw std::runtime_error("Expected ')'");
-        pos++;
-        return val;
-    }
-
-    if (expr[pos] == '-') {
-        pos++;
-        return -parseAtom();
-    }
-
-    if (isdigit(expr[pos]) || expr[pos] == '.') {
-        return parseNumber();
-    }
-
-    if (isalpha(expr[pos])) {
-        std::string name = parseName();
-        skipSpaces();
-
-        if (expr[pos] == '(') {
-            return parseFunction(name);
-        }
-
-        auto it = vars.find(name);
-        if (it == vars.end()) throw std::runtime_error("Unknown variable: " + name);
-        return it->second;
-    }
-
-    throw std::runtime_error("Unexpected character");
-}
-
-double Parser::parsePow() {
-    double left = parseAtom();
-
-    while (true) {
-        skipSpaces();
-        if (expr[pos] == '^') {
-            pos++;
-            double right = parseAtom();
-            left = pow(left, right);
-        }
-        else {
-            break;
-        }
-    }
-
-    return left;
-}
-
-double Parser::parseMulDiv() {
-    double left = parsePow();
-
-    while (true) {
-        skipSpaces();
-        char op = expr[pos];
-        if (op == '*' || op == '/' || op == '%') {
-            pos++;
-            double right = parsePow();
-
-            if (op == '*') left *= right;
-            else if (op == '/') {
-                if (right == 0) throw std::runtime_error("Division by zero");
-                left /= right;
-            }
-            else {
-                left = fmod(left, right);
-            }
-        }
-        else {
-            break;
-        }
-    }
-
-    return left;
-}
-
-double Parser::parseAddSub() {
-    double left = parseMulDiv();
-
-    while (true) {
-        skipSpaces();
-        char op = expr[pos];
-        if (op == '+' || op == '-') {
-            pos++;
-            double right = parseMulDiv();
-
-            if (op == '+') left += right;
-            else left -= right;
-        }
-        else {
-            break;
-        }
-    }
-
-    return left;
-}
-
-double Parser::calculate(const std::string& expression) {
-    expr = expression;
-    pos = 0;
-    vars.clear();
-
-    double result = parseAddSub();
-    skipSpaces();
-    if (pos != expr.size()) throw std::runtime_error("Unexpected characters");
-
-    return result;
-}
-
-double Parser::calculate(const std::string& expression, const std::map<std::string, double>& variables) {
-    expr = expression;
-    pos = 0;
-    vars = variables;
-
-    double result = parseAddSub();
-    skipSpaces();
-    if (pos != expr.size()) throw std::runtime_error("Unexpected characters");
-
-    return result;
-}
-
-bool Parser::validate(const std::string& expression) {
-    try {
-        Parser p;
-        p.calculate(expression);
-        return true;
-    }
-    catch (...) {
-        return false;
-    }
-}
+//#include "Parser.h"
+//#include "stack.h"
+//#include <sstream>
+//#include <cctype>
+//#include <algorithm>
+//#include <stdexcept>
+//#include <iostream>
+//#include <unordered_map>
+//
+//using namespace std;
+//
+//namespace Parser {
+//    unordered_map<string, int> operatorPriority = {
+//        {"+", 1}, {"-", 1},
+//        {"*", 2}, {"/", 2},
+//        {"^", 3}, {"u-", 4}  
+//    };
+//
+//    unordered_map<string, function<double(double)>> functions = {
+//        {"sin", [](double x) { return sin(x); }},
+//        {"cos", [](double x) { return cos(x); }},
+//        {"tg", [](double x) { return tan(x); }},
+//        {"tan", [](double x) { return tan(x); }},
+//        {"ln", [](double x) { return log(x); }},
+//        {"log", [](double x) { return log10(x); }},
+//        {"exp", [](double x) { return exp(x); }},
+//        {"sqrt", [](double x) { return sqrt(x); }},
+//        {"abs", [](double x) { return fabs(x); }}
+//    };
+//
+//
+//    bool isDigit(char c) {
+//        return isdigit(static_cast<unsigned char>(c)) || c == '.';
+//    }
+//
+//    bool isLetter(char c) {
+//        return isalpha(static_cast<unsigned char>(c)) || c == '_';
+//    }
+//
+//    bool isVariableChar(char c) {
+//        return isalnum(static_cast<unsigned char>(c)) || c == '_';
+//    }
+//
+//    int getPriority(const string& op) {
+//        typedef unordered_map<string, int>::const_iterator MapIterator;
+//        MapIterator it = operatorPriority.find(op);
+//        if (it != operatorPriority.end()) {
+//            return it->second;
+//        }
+//        return -1;
+//    }
+//
+//    bool isUnaryOperator(char current, const List<Lexem>& previous) {
+//        if (previous.empty()) {
+//            return true;
+//        }
+//
+//        const Lexem& last = previous.back();
+//
+//        if (last.isOperator() ||
+//            last.type == OpenBracket ||
+//            last.type == OpenedAbs ||
+//            last.type == Function) {
+//            return true;
+//        }
+//
+//        return false;
+//    }
+//
+//    bool isOpeningAbs(const List<Lexem>& previous) {
+//        
+//        if (previous.empty()) {
+//            return true;
+//        }
+//
+//        const Lexem& last = previous.back();
+//
+//        if (last.isOperator() ||
+//            last.type == OpenBracket ||
+//            last.type == OpenedAbs ||
+//            last.type == Function) {
+//            return true;
+//        }
+//
+//        return false;
+//    }
+//
+//
+//    List<Lexem> parse(const string& expression) {
+//        List<Lexem> result;
+//        string expr = expression;
+//
+//        expr.erase(remove(expr.begin(), expr.end(), ' '), expr.end());
+//
+//        if (expr.empty()) {
+//            throw invalid_argument("Empty expression");
+//        }
+//
+//        size_t pos = 0; // позиция
+//        size_t length = expr.length(); // длина строки
+//
+//        while (pos < length) {
+//            char current = expr[pos];
+//
+//            if (isDigit(current)) {
+//                size_t start = pos;
+//                bool hasDecimal = false; // была ли точка в числе
+//
+//                while (pos < length && isDigit(expr[pos])) {
+//                    if (expr[pos] == '.') {
+//                        if (hasDecimal) {
+//                            throw invalid_argument("Invalid number: multiple decimal points at position " + to_string(pos + 1));
+//                        }
+//                        hasDecimal = true;
+//                    }
+//                    pos++;
+//                }
+//
+//                string numStr = expr.substr(start, pos - start);
+//
+//                if (numStr == ".") {
+//                    throw invalid_argument("Invalid number: single dot at position " + to_string(start + 1)); // переводим позицию в строку
+//                }
+//
+//                double value;
+//                try {
+//                    value = stod(numStr);
+//                }
+//                catch (...) {
+//                    throw invalid_argument("Invalid number format at position " + to_string(start + 1));
+//                }
+//
+//                result.push_back(Lexem(value));
+//                continue;
+//            }
+//
+//            if (isLetter(current)) {
+//                size_t start = pos;
+//
+//                while (pos < length && isVariableChar(expr[pos])) {
+//                    pos++;
+//                }
+//
+//                string name = expr.substr(start, pos - start);
+//
+//                if (pos < length && expr[pos] == '(') {
+//                    unordered_map<string, function<double(double)>>::const_iterator it = functions.find(name);
+//                    if (it != functions.end()) {
+//                        result.push_back(Lexem(name, it->second));
+//                    }
+//                    else {
+//                        throw invalid_argument("Unknown function '" + name + "' at position " + to_string(start + 1));
+//                    }
+//                }
+//                else {
+//                    result.push_back(Lexem(name, Variable));
+//                }
+//                continue;
+//            }
+//
+//            if (current == '+' || current == '-' || current == '*' || current == '/' || current == '^') {
+//                string op(1, current);
+//
+//                if (current == '-') {
+//                    if (isUnaryOperator(current, result)) {
+//                        result.push_back(Lexem("u-", UnOperator, 4));
+//                    }
+//                    else {
+//                        result.push_back(Lexem("-", Operator, 1));
+//                    }
+//                }
+//                else if (current == '+') {
+//                    if (!isUnaryOperator(current, result)) {
+//                        result.push_back(Lexem("+", Operator, 1));
+//                    }
+//                }
+//                else {
+//                    result.push_back(Lexem(op, Operator, getPriority(op)));
+//                }
+//
+//                pos++;
+//                continue;
+//            }
+//
+//            if (current == '(' || current == '[' || current == '{') {
+//                result.push_back(Lexem("(", OpenBracket));
+//                pos++;
+//                continue;
+//            }
+//
+//            if (current == ')' || current == ']' || current == '}') {
+//                result.push_back(Lexem(")", CloseBracket));
+//                pos++;
+//                continue;
+//            }
+//
+//            if (current == '|') {
+//                if (pos + 1 < length && expr[pos + 1] == '|') {
+//                    if (isOpeningAbs(result)) {
+//                        result.push_back(Lexem("||", OpenedAbs));
+//                    }
+//                    else {
+//                        result.push_back(Lexem("||", ClosedAbs));
+//                    }
+//                    pos += 2;  
+//                    continue;
+//                }
+//                else {
+//                    throw invalid_argument("Single '|' is not allowed, use '||' for absolute value at position " + to_string(pos + 1));
+//                }
+//            }
+//
+//            throw invalid_argument("Unknown character '" + string(1, current) +
+//                "' at position " + to_string(pos + 1));
+//        }
+//
+//        return result;
+//    }
+//
+//
+//    List<Lexem> toRPN(const List<Lexem>& infix) {
+//        List<Lexem> output;
+//        Stack<Lexem> stack(100);
+//
+//        for (List<Lexem>::ConstIterator it = infix.begin(); it != infix.end(); ++it) {
+//            const Lexem& lex = *it;
+//
+//            switch (lex.type) {
+//            case Constant:
+//            case Variable:
+//                output.push_back(lex);
+//                break;
+//
+//            case Function:
+//                stack.push(lex);
+//                break;
+//
+//            case UnOperator:
+//            case Operator:
+//                while (!stack.is_empty() &&
+//                    stack.top().isOperator() &&
+//                    stack.top().priority >= lex.priority) {
+//                    output.push_back(stack.top());
+//                    stack.pop();
+//                }
+//                stack.push(lex);
+//                break;
+//
+//            case OpenBracket:
+//            case OpenedAbs:
+//                stack.push(lex);
+//                break;
+//
+//            case CloseBracket: {
+//                while (!stack.is_empty() && stack.top().type != OpenBracket) {
+//                    output.push_back(stack.top());
+//                    stack.pop();
+//                }
+//
+//                if (stack.is_empty()) {
+//                    throw runtime_error("Mismatched brackets: missing '('");
+//                }
+//
+//                stack.pop();
+//
+//                if (!stack.is_empty() && stack.top().type == Function) {
+//                    output.push_back(stack.top());
+//                    stack.pop();
+//                }
+//                break;
+//            }
+//
+//            case ClosedAbs: {
+//                while (!stack.is_empty() && stack.top().type != OpenedAbs) {
+//                    output.push_back(stack.top());
+//                    stack.pop();
+//                }
+//
+//                if (stack.is_empty()) {
+//                    throw runtime_error("Mismatched absolute value bars: missing opening '||'");
+//                }
+//
+//                stack.pop();
+//
+//                output.push_back(Lexem("abs", functions.at("abs")));
+//                break;
+//            }
+//
+//            default:
+//                break;
+//            }
+//        }
+//
+//        while (!stack.is_empty()) {
+//            if (stack.top().isBracket() || stack.top().isAbs()) {
+//                if (stack.top().type == OpenBracket) {
+//                    throw runtime_error("Mismatched brackets: missing ')'");
+//                }
+//                else if (stack.top().type == OpenedAbs) {
+//                    throw runtime_error("Mismatched absolute value bars: missing closing '||'");
+//                }
+//            }
+//
+//            output.push_back(stack.top());
+//            stack.pop();
+//        }
+//
+//        return output;
+//    }
+//} // namespace Parser

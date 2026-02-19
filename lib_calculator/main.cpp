@@ -1,15 +1,15 @@
-#include "Calculator.h"
-#include <iostream>
-
-int main() {
-    try {
-        Calculator calculator;
-        calculator.run();
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Fatal error: " << e.what() << std::endl;
-        return 1;
-    }
-
-    return 0;
-}
+//#include "Calculator.h"
+//#include <iostream>
+//
+//int main() {
+//    try {
+//        Calculator calculator;
+//        calculator.run();
+//    }
+//    catch (const std::exception& e) {
+//        std::cerr << "Fatal error: " << e.what() << std::endl;
+//        return 1;
+//    }
+//
+//    return 0;
+//}

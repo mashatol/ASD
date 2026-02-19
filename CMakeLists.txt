@@ -22,6 +22,7 @@ add_subdirectory(lib_queueL)
 add_subdirectory(lib_TVector)
 add_subdirectory(lib_calculator)
 add_subdirectory(lib_alg)
+add_subdirectory(lib_polynom)
 
 add_subdirectory(main)                # подключаем дополнительный CMakeLists.txt из подкаталога с именем main
 
