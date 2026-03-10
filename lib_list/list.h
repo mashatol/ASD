@@ -5,17 +5,16 @@
 
 template<typename T>
 class List {
-public: 
+public:
     struct Node {
-    T value;
-    Node* next;
+        T value;
+        Node* next;
 
-    Node(const T& val, Node* next_node = nullptr)
-        : value(val), next(next_node) {
-    }
-};
+        Node(const T& val, Node* next_node = nullptr)
+            : value(val), next(next_node) {
+        }
+    };
 private:
-
     Node* head;
     Node* tail;
     size_t size;
@@ -26,8 +25,7 @@ public:
     List(const List& other) : head(nullptr), tail(nullptr), size(0) {
         Node* current = other.head;
         while (current != nullptr) {
-            Node* new_Node = new Node(current->value); //
-
+            push_back(current->value);
             current = current->next;
         }
     }
@@ -37,7 +35,7 @@ public:
             clear();
             Node* current = other.head;
             while (current != nullptr) {
-                push_back(current->value); //
+                push_back(current->value);
                 current = current->next;
             }
         }
@@ -142,11 +140,35 @@ public:
 
     void clear() {
         while (!empty()) {
-            pop_front(); //
+            pop_front();
         }
     }
 
-   
+    // Новые публичные методы для доступа к tail и удаления после узла
+    Node* get_tail() {
+        return tail;
+    }
+
+    const Node* get_tail() const {
+        return tail;
+    }
+
+    void erase_after(Node* prev_node) {
+        if (prev_node == nullptr || prev_node->next == nullptr) {
+            throw std::out_of_range("Cannot erase after given node");
+        }
+
+        Node* to_delete = prev_node->next;
+        prev_node->next = to_delete->next;
+
+        if (tail == to_delete) {
+            tail = prev_node;
+        }
+
+        delete to_delete;
+        size--;
+    }
+
     class Iterator {
     private:
         Node* current;
@@ -161,7 +183,6 @@ public:
 
         Iterator(Node* node = nullptr) : current(node) {}
 
-       
         Iterator& operator++() {
             if (current != nullptr) {
                 current = current->next;
@@ -198,7 +219,6 @@ public:
         }
     };
 
-    
     class ConstIterator {
     private:
         const Node* current;
@@ -248,7 +268,6 @@ public:
             return !(*this == other);
         }
     };
-
 
     Iterator begin() {
         return Iterator(head);
